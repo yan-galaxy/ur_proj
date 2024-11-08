@@ -118,8 +118,11 @@ For starting up RViz with a configuration including the MoveIt! Motion Planning 
 
 ```roslaunch ur5_moveit_config moveit_rviz.launch```
 
+
 Controlling joints:
+
 ```rosrun ur_gazebo moveit_fk_demo```
 
 Cartesian space movement, adding collision objects:
+
 ```rosrun ur_gazebo moveit_demo```
