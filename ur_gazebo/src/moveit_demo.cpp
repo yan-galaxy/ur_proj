@@ -48,7 +48,7 @@ int main(int argc, char **argv)
 
     //设置允许的最大速度和加速度
     arm.setMaxAccelerationScalingFactor(0.5);
-    arm.setMaxVelocityScalingFactor(0.5);
+    arm.setMaxVelocityScalingFactor(0.05);
 
     //增加轨迹规划时间
     arm.setPlanningTime(10.0); // 增加到 10 秒
@@ -157,7 +157,7 @@ int main(int argc, char **argv)
     leftwall_box_pose.orientation.y = leftwall_quaternion.y();//0.0
     leftwall_box_pose.orientation.z = leftwall_quaternion.z();//0.0
     leftwall_box_pose.orientation.w = leftwall_quaternion.w();//1.0
-    double leftwall_axis_distance = 0.3;//左边墙到机械臂真正x轴的距离
+    double leftwall_axis_distance = 0.25;//左边墙到机械臂真正x轴的距离
     leftwall_box_pose.position.x = (std::sqrt(2)/2.0-leftwall_axis_distance)/std::sqrt(2);     // X 位置    0.287868
     leftwall_box_pose.position.y = 1-leftwall_box_pose.position.x;     // Y 位置  0.712132
     leftwall_box_pose.position.z = leftwall_primitive.dimensions[2]/2.0-0.01;    // Z 位置 (中心高度)
