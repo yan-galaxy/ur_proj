@@ -62,6 +62,7 @@ int main(int argc, char **argv)
     object_ids.push_back("table");
     object_ids.push_back("backwall");
     object_ids.push_back("leftwall");
+    object_ids.push_back("rightwall");
     // 根据ID移除碰撞对象
     scene.removeCollisionObjects(object_ids);
 
