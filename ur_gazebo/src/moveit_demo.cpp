@@ -55,15 +55,15 @@ int main(int argc, char **argv)
 
 
     
-    // // 移除场景中之前运行残留的物体
-    // // 创建一个包含对象ID的字符串向量
-    // std::vector<std::string> object_ids;
-    // // object_ids.push_back("tool");
-    // object_ids.push_back("table");
-    // object_ids.push_back("backwall");
-    // object_ids.push_back("leftwall");
-    // // 根据ID移除碰撞对象
-    // scene.removeCollisionObjects(object_ids);
+    // 移除场景中之前运行残留的物体
+    // 创建一个包含对象ID的字符串向量
+    std::vector<std::string> object_ids;
+    // object_ids.push_back("tool");
+    object_ids.push_back("table");
+    object_ids.push_back("backwall");
+    object_ids.push_back("leftwall");
+    // 根据ID移除碰撞对象
+    scene.removeCollisionObjects(object_ids);
 
     // 定义table
     moveit_msgs::CollisionObject table_collision;
@@ -73,18 +73,26 @@ int main(int argc, char **argv)
     shape_msgs::SolidPrimitive table_primitive;
     table_primitive.type = table_primitive.BOX;
     table_primitive.dimensions.resize(3);
-    table_primitive.dimensions[0] = 1.2; // X 方向大小 (m)
-    table_primitive.dimensions[1] = 1.3; // Y 方向大小 (m)
-    table_primitive.dimensions[2] = 0.01; // Z 方向大小 (m)
+    table_primitive.dimensions[0] = (1.2+0.3) * std::sqrt(2); // X 方向大小 (m)
+    table_primitive.dimensions[1] = 1.2 * std::sqrt(2); // Y 方向大小 (m)
+    table_primitive.dimensions[2] = 0.01 ; // Z 方向大小 (m)
     // 定义障碍物的位置和姿态
     geometry_msgs::Pose table_box_pose;
-    table_box_pose.orientation.x = 0.0;  // 无旋转
-    table_box_pose.orientation.y = 0.0;  // 无旋转
-    table_box_pose.orientation.z = 0.0;  // 无旋转
-    table_box_pose.orientation.w = 1.0;  // 无旋转
-    table_box_pose.position.x = table_primitive.dimensions[0]/2.0-0.2;     // X 位置
-    table_box_pose.position.y = -(table_primitive.dimensions[1]/2.0-0.3);     // Y 位置
-    table_box_pose.position.z = -table_primitive.dimensions[2]/2.0-0.01;    // Z 位置 (中心高度)
+    // 设置绕Z轴旋转45度
+    double table_roll = 0.0;
+    double table_pitch = 0.0;
+    double table_yaw = M_PI / 4.0; // 45度，单位为弧度   M_PI / 4.0
+    // 使用tf::Quaternion计算四元数
+    tf::Quaternion table_quaternion;
+    table_quaternion.setRPY(table_roll, table_pitch, table_yaw);
+    // 将tf::Quaternion转换为geometry_msgs::Quaternion
+    table_box_pose.orientation.x = table_quaternion.x();//0.0
+    table_box_pose.orientation.y = table_quaternion.y();//0.0
+    table_box_pose.orientation.z = table_quaternion.z();//0.0
+    table_box_pose.orientation.w = table_quaternion.w();//1.0
+    table_box_pose.position.x = 0.6;     // X 位置  1.2/2.0=0.6 table_primitive.dimensions[0]/2.0-0.2
+    table_box_pose.position.y = 0.6;     // Y 位置  1.2/2.0=0.6 -(table_primitive.dimensions[1]/2.0-0.3)
+    table_box_pose.position.z = -table_primitive.dimensions[2]/2.0-0.01;    // Z 位置 (中心高度)  -table_primitive.dimensions[2]/2.0-0.01
     // 将形状和姿态加入到 collision object 中
     table_collision.primitives.push_back(table_primitive);
     table_collision.primitive_poses.push_back(table_box_pose);
@@ -103,12 +111,20 @@ int main(int argc, char **argv)
     backwall_primitive.dimensions[2] = 1.0; // Z 方向大小 (m)
     // 定义障碍物的位置和姿态
     geometry_msgs::Pose backwall_box_pose;
-    backwall_box_pose.orientation.x = 0.0;  // 无旋转
-    backwall_box_pose.orientation.y = 0.0;  // 无旋转
-    backwall_box_pose.orientation.z = 0.0;  // 无旋转
-    backwall_box_pose.orientation.w = 1.0;  // 无旋转
-    backwall_box_pose.position.x = -0.20;     // X 位置
-    backwall_box_pose.position.y = -backwall_primitive.dimensions[1]/2.0+0.3;     // Y 位置
+    // 设置绕Z轴旋转45度
+    double backwall_roll = 0.0;
+    double backwall_pitch = 0.0;
+    double backwall_yaw = M_PI / 4.0; // 45度，单位为弧度   M_PI / 4.0
+    // 使用tf::Quaternion计算四元数
+    tf::Quaternion backwall_quaternion;
+    backwall_quaternion.setRPY(backwall_roll, backwall_pitch, backwall_yaw);
+    // 将tf::Quaternion转换为geometry_msgs::Quaternion
+    backwall_box_pose.orientation.x = backwall_quaternion.x();//0.0
+    backwall_box_pose.orientation.y = backwall_quaternion.y();//0.0
+    backwall_box_pose.orientation.z = backwall_quaternion.z();//0.0
+    backwall_box_pose.orientation.w = backwall_quaternion.w();//1.0
+    backwall_box_pose.position.x = -0.15/1.41421356;     // X 位置
+    backwall_box_pose.position.y = -0.15/1.41421356;     // Y 位置
     backwall_box_pose.position.z = backwall_primitive.dimensions[2]/2.0-0.01;    // Z 位置 (中心高度)
     // 将形状和姿态加入到 collision object 中
     backwall_collision.primitives.push_back(backwall_primitive);
@@ -123,28 +139,73 @@ int main(int argc, char **argv)
     shape_msgs::SolidPrimitive leftwall_primitive;
     leftwall_primitive.type = leftwall_primitive.BOX;
     leftwall_primitive.dimensions.resize(3);
-    leftwall_primitive.dimensions[0] = 1.2; // X 方向大小 (m)
+    leftwall_primitive.dimensions[0] = 1.8; // X 方向大小 (m)
     leftwall_primitive.dimensions[1] = 0.01; // Y 方向大小 (m)
     leftwall_primitive.dimensions[2] = 1.0; // Z 方向大小 (m)
     // 定义障碍物的位置和姿态
     geometry_msgs::Pose leftwall_box_pose;
-    leftwall_box_pose.orientation.x = 0.0;  // 无旋转
-    leftwall_box_pose.orientation.y = 0.0;  // 无旋转
-    leftwall_box_pose.orientation.z = 0.0;  // 无旋转
-    leftwall_box_pose.orientation.w = 1.0;  // 无旋转
-    leftwall_box_pose.position.x = leftwall_primitive.dimensions[0]/2.0-0.2;     // X 位置
-    leftwall_box_pose.position.y = 0.30;     // Y 位置
+    // 设置绕Z轴旋转45度
+    double leftwall_roll = 0.0;
+    double leftwall_pitch = 0.0;
+    double leftwall_yaw = M_PI / 4.0; // 45度，单位为弧度   M_PI / 4.0
+    // 使用tf::Quaternion计算四元数
+    tf::Quaternion leftwall_quaternion;
+    leftwall_quaternion.setRPY(leftwall_roll, leftwall_pitch, leftwall_yaw);
+    // 将tf::Quaternion转换为geometry_msgs::Quaternion
+    leftwall_box_pose.orientation.x = leftwall_quaternion.x();//0.0
+    leftwall_box_pose.orientation.y = leftwall_quaternion.y();//0.0
+    leftwall_box_pose.orientation.z = leftwall_quaternion.z();//0.0
+    leftwall_box_pose.orientation.w = leftwall_quaternion.w();//1.0
+    double leftwall_axis_distance = 0.3;//左边墙到机械臂真正x轴的距离
+    leftwall_box_pose.position.x = (std::sqrt(2)/2.0-leftwall_axis_distance)/std::sqrt(2);     // X 位置    0.287868
+    leftwall_box_pose.position.y = 1-leftwall_box_pose.position.x;     // Y 位置  0.712132
     leftwall_box_pose.position.z = leftwall_primitive.dimensions[2]/2.0-0.01;    // Z 位置 (中心高度)
     // 将形状和姿态加入到 collision object 中
     leftwall_collision.primitives.push_back(leftwall_primitive);
     leftwall_collision.primitive_poses.push_back(leftwall_box_pose);
     leftwall_collision.operation = leftwall_collision.ADD;
 
+
+    // 定义 rightwall
+    moveit_msgs::CollisionObject rightwall_collision;
+    rightwall_collision.header.frame_id = "base_link"; // 设定障碍物的参考坐标系
+    rightwall_collision.id = "rightwall"; // 障碍物的 ID
+    // 定义障碍物的形状和大小 (立方体)
+    shape_msgs::SolidPrimitive rightwall_primitive;
+    rightwall_primitive.type = rightwall_primitive.BOX;
+    rightwall_primitive.dimensions.resize(3);
+    rightwall_primitive.dimensions[0] = 1.8; // X 方向大小 (m)
+    rightwall_primitive.dimensions[1] = 0.01; // Y 方向大小 (m)
+    rightwall_primitive.dimensions[2] = 1.0; // Z 方向大小 (m)
+    // 定义障碍物的位置和姿态
+    geometry_msgs::Pose rightwall_box_pose;
+    // 设置绕Z轴旋转45度
+    double rightwall_roll = 0.0;
+    double rightwall_pitch = 0.0;
+    double rightwall_yaw = M_PI / 4.0; // 45度，单位为弧度   M_PI / 4.0
+    // 使用tf::Quaternion计算四元数
+    tf::Quaternion rightwall_quaternion;
+    rightwall_quaternion.setRPY(rightwall_roll, rightwall_pitch, rightwall_yaw);
+    // 将tf::Quaternion转换为geometry_msgs::Quaternion
+    rightwall_box_pose.orientation.x = rightwall_quaternion.x();//0.0
+    rightwall_box_pose.orientation.y = rightwall_quaternion.y();//0.0
+    rightwall_box_pose.orientation.z = rightwall_quaternion.z();//0.0
+    rightwall_box_pose.orientation.w = rightwall_quaternion.w();//1.0
+    double rightwall_axis_distance = 0.3;//右边墙到机械臂真正x轴的距离
+    rightwall_box_pose.position.y = (std::sqrt(2)/2.0-rightwall_axis_distance)/std::sqrt(2);     // Y 位置   0.287868
+    rightwall_box_pose.position.x = 1-rightwall_box_pose.position.y;     // X 位置    0.712132
+    rightwall_box_pose.position.z = rightwall_primitive.dimensions[2]/2.0-0.01;    // Z 位置 (中心高度)
+    // 将形状和姿态加入到 collision object 中
+    rightwall_collision.primitives.push_back(rightwall_primitive);
+    rightwall_collision.primitive_poses.push_back(rightwall_box_pose);
+    rightwall_collision.operation = rightwall_collision.ADD;
+
     // 将 collision object 添加到场景中
     std::vector<moveit_msgs::CollisionObject> collision_objects;
     collision_objects.push_back(table_collision);
     collision_objects.push_back(backwall_collision);
     collision_objects.push_back(leftwall_collision);
+    collision_objects.push_back(rightwall_collision);
 
     scene.addCollisionObjects(collision_objects);
 
@@ -172,12 +233,21 @@ int main(int argc, char **argv)
     leftwall_color.color.b = 1.0; // 蓝色分量
     leftwall_color.color.a = 0.2; // 设置透明度 (0.5 表示半透明)
 
+    // 定义障碍物的颜色和透明度
+    moveit_msgs::ObjectColor rightwall_color;
+    rightwall_color.id = "rightwall"; // 颜色对应的障碍物 ID
+    rightwall_color.color.r = 1.0; // 红色分量
+    rightwall_color.color.g = 0.0; // 绿色分量
+    rightwall_color.color.b = 1.0; // 蓝色分量
+    rightwall_color.color.a = 0.2; // 设置透明度 (0.5 表示半透明)
+
     // 发布颜色和透明度信息
     moveit_msgs::PlanningScene planning_scene;
     planning_scene.is_diff = true;
     planning_scene.object_colors.push_back(table_color);
     planning_scene.object_colors.push_back(backwall_color);
     planning_scene.object_colors.push_back(leftwall_color);
+    planning_scene.object_colors.push_back(rightwall_color);
 
     ros::Publisher planning_scene_diff_publisher =
         nh.advertise<moveit_msgs::PlanningScene>("planning_scene", 1);
@@ -187,12 +257,97 @@ int main(int argc, char **argv)
     }
     planning_scene_diff_publisher.publish(planning_scene);
 
-    // 控制机械臂先回到初始化位置
-    arm.setNamedTarget("home");
-    arm.move();
-    sleep(1);
 
+
+
+    // // 控制机械臂先回到初始化位置
+    // arm.setNamedTarget("home");
+    // arm.move();
+    // sleep(1);
+
+
+    // //笛卡尔空间下的路径规划  走直线
+    // geometry_msgs::Pose start_pose = arm.getCurrentPose(end_effector_link).pose;
+    // std::vector<geometry_msgs::Pose> waypoints;
+    // //将初始位姿加入路点列表
+	// waypoints.push_back(start_pose);
+    // start_pose.position.z -= 0.2;
+	// waypoints.push_back(start_pose);
+    // start_pose.position.x -= 0.2;
+	// waypoints.push_back(start_pose);
+    // start_pose.position.y -= 0.2;
+	// waypoints.push_back(start_pose);
+    // start_pose.position.x += 0.2;
+    // // start_pose.position.y += 0.2;
+	// waypoints.push_back(start_pose);
+    // start_pose.position.y += 0.2;
+	// waypoints.push_back(start_pose);
+    // start_pose.position.z += 0.2;
+	// waypoints.push_back(start_pose);
     
+    // moveit_msgs::RobotTrajectory trajectory;
+	// const double jump_threshold = 0.0;
+	// const double eef_step = 0.01;
+    // double fraction = 0.0;
+    // int maxtries = 30;   //最大尝试规划次数
+    // int attempts = 0;     //已经尝试规划次数
+    
+
+    // while(fraction < 1.0 && attempts < maxtries)
+    // {
+    //     fraction = arm.computeCartesianPath(waypoints, eef_step, trajectory);
+    //     attempts++;
+        
+    //     if(attempts % 10 == 0)
+    //         ROS_INFO("Still trying after %d attempts...", attempts);
+    // }
+    
+    // if(fraction == 1)
+    // {   
+    //     ROS_INFO("Path computed successfully. Moving the arm.");
+
+	//     // 生成机械臂的运动规划数据
+	//     moveit::planning_interface::MoveGroupInterface::Plan plan;
+	//     plan.trajectory_ = trajectory;
+
+    //     // //打印时间戳检查是否严格递增
+    //     // for (const auto& point : plan.trajectory_.joint_trajectory.points)
+    //     // {
+    //     //     ROS_INFO("Waypoint time_from_start: %f", point.time_from_start.toSec());
+    //     // }
+    //     // 检查并修正第一个和第二个时间戳
+    //     if (plan.trajectory_.joint_trajectory.points.size() > 2 &&
+    //         plan.trajectory_.joint_trajectory.points[0].time_from_start == plan.trajectory_.joint_trajectory.points[1].time_from_start)
+    //     {
+            
+    //         // ROS_INFO("Change Waypoint time_from_start: %f", plan.trajectory_.joint_trajectory.points[2].time_from_start.toSec()/2.0);
+    //         // plan.trajectory_.joint_trajectory.points[1].time_from_start = ros::Duration(0.03);
+    //         plan.trajectory_.joint_trajectory.points[1].time_from_start = ros::Duration(plan.trajectory_.joint_trajectory.points[2].time_from_start.toSec()/2.0);
+    //         // ROS_INFO("Change Waypoint time_from_start: %f", plan.trajectory_.joint_trajectory.points[1].time_from_start.toSec());
+            
+    //     }
+
+
+	//     // 执行运动
+	//     arm.execute(plan);
+    //     sleep(1);
+    // }
+    // else
+    // {
+    //     ROS_INFO("Path planning failed with only %0.6f success after %d attempts.", fraction, maxtries);
+    // }
+
+
+
+    ros::shutdown(); 
+
+    return 0;
+}
+
+
+
+
+
     // // 逆运动学解算
     // // 获取当前位姿数据最为机械臂运动的起始位姿    end_effector_link    "tool0"
     // geometry_msgs::Pose start_pose = arm.getCurrentPose(end_effector_link).pose;
@@ -231,77 +386,6 @@ int main(int argc, char **argv)
     // sleep(1);
 
 
-    //笛卡尔空间下的路径规划  走直线
-    geometry_msgs::Pose start_pose = arm.getCurrentPose(end_effector_link).pose;
-    std::vector<geometry_msgs::Pose> waypoints;
-    //将初始位姿加入路点列表
-	waypoints.push_back(start_pose);
-    start_pose.position.z -= 0.2;
-	waypoints.push_back(start_pose);
-    start_pose.position.x -= 0.2;
-	waypoints.push_back(start_pose);
-    start_pose.position.y -= 0.2;
-	waypoints.push_back(start_pose);
-    start_pose.position.x += 0.2;
-    // start_pose.position.y += 0.2;
-	waypoints.push_back(start_pose);
-    start_pose.position.y += 0.2;
-	waypoints.push_back(start_pose);
-    start_pose.position.z += 0.2;
-	waypoints.push_back(start_pose);
-    
-    moveit_msgs::RobotTrajectory trajectory;
-	const double jump_threshold = 0.0;
-	const double eef_step = 0.01;
-    double fraction = 0.0;
-    int maxtries = 30;   //最大尝试规划次数
-    int attempts = 0;     //已经尝试规划次数
-    
-
-    while(fraction < 1.0 && attempts < maxtries)
-    {
-        fraction = arm.computeCartesianPath(waypoints, eef_step, trajectory);
-        attempts++;
-        
-        if(attempts % 10 == 0)
-            ROS_INFO("Still trying after %d attempts...", attempts);
-    }
-    
-    if(fraction == 1)
-    {   
-        ROS_INFO("Path computed successfully. Moving the arm.");
-
-	    // 生成机械臂的运动规划数据
-	    moveit::planning_interface::MoveGroupInterface::Plan plan;
-	    plan.trajectory_ = trajectory;
-
-        // //打印时间戳检查是否严格递增
-        // for (const auto& point : plan.trajectory_.joint_trajectory.points)
-        // {
-        //     ROS_INFO("Waypoint time_from_start: %f", point.time_from_start.toSec());
-        // }
-        // 检查并修正第一个和第二个时间戳
-        if (plan.trajectory_.joint_trajectory.points.size() > 2 &&
-            plan.trajectory_.joint_trajectory.points[0].time_from_start == plan.trajectory_.joint_trajectory.points[1].time_from_start)
-        {
-            
-            // ROS_INFO("Change Waypoint time_from_start: %f", plan.trajectory_.joint_trajectory.points[2].time_from_start.toSec()/2.0);
-            // plan.trajectory_.joint_trajectory.points[1].time_from_start = ros::Duration(0.03);
-            plan.trajectory_.joint_trajectory.points[1].time_from_start = ros::Duration(plan.trajectory_.joint_trajectory.points[2].time_from_start.toSec()/2.0);
-            // ROS_INFO("Change Waypoint time_from_start: %f", plan.trajectory_.joint_trajectory.points[1].time_from_start.toSec());
-            
-        }
-
-
-	    // 执行运动
-	    arm.execute(plan);
-        sleep(1);
-    }
-    else
-    {
-        ROS_INFO("Path planning failed with only %0.6f success after %d attempts.", fraction, maxtries);
-    }
-
     // fraction = arm.computeCartesianPath(waypoints, eef_step, trajectory);
     // // 执行路径
     // if (fraction > 0.0)
@@ -320,8 +404,3 @@ int main(int argc, char **argv)
     // arm.setNamedTarget("home");
     // arm.move();
     // sleep(1);
-
-    ros::shutdown(); 
-
-    return 0;
-}
