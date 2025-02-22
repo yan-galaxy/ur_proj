@@ -11,6 +11,9 @@
 #include <shape_msgs/SolidPrimitive.h>
 #include <moveit_msgs/PlanningScene.h>
 
+// roslaunch ur_gazebo ur5_bringup.launch
+// roslaunch ur5_moveit_config moveit_planning_execution.launch sim:=true
+// roslaunch ur5_moveit_config moveit_rviz.launch
 
 int main(int argc, char **argv)
 {
@@ -23,6 +26,10 @@ int main(int argc, char **argv)
     moveit::planning_interface::PlanningSceneInterface scene;
 
     moveit::planning_interface::MoveGroupInterface arm("manipulator");
+
+    // // 设置规划器为 EST
+    // arm.setPlannerId("ESTConfigDefault");  // 使用 EST 规划器
+    // ROS_INFO("Planner set to ESTConfigDefault");
 
     //获取终端link的名称
     std::string end_effector_link = arm.getEndEffectorLink();
@@ -229,7 +236,7 @@ int main(int argc, char **argv)
     std::vector<geometry_msgs::Pose> waypoints;
     //将初始位姿加入路点列表
 	waypoints.push_back(start_pose);
-    start_pose.position.z -= 0.3;
+    start_pose.position.z -= 0.2;
 	waypoints.push_back(start_pose);
     start_pose.position.x -= 0.2;
 	waypoints.push_back(start_pose);
@@ -240,7 +247,7 @@ int main(int argc, char **argv)
 	waypoints.push_back(start_pose);
     start_pose.position.y += 0.2;
 	waypoints.push_back(start_pose);
-    start_pose.position.z += 0.3;
+    start_pose.position.z += 0.2;
 	waypoints.push_back(start_pose);
     
     moveit_msgs::RobotTrajectory trajectory;
@@ -277,6 +284,7 @@ int main(int argc, char **argv)
         if (plan.trajectory_.joint_trajectory.points.size() > 2 &&
             plan.trajectory_.joint_trajectory.points[0].time_from_start == plan.trajectory_.joint_trajectory.points[1].time_from_start)
         {
+            
             // ROS_INFO("Change Waypoint time_from_start: %f", plan.trajectory_.joint_trajectory.points[2].time_from_start.toSec()/2.0);
             // plan.trajectory_.joint_trajectory.points[1].time_from_start = ros::Duration(0.03);
             plan.trajectory_.joint_trajectory.points[1].time_from_start = ros::Duration(plan.trajectory_.joint_trajectory.points[2].time_from_start.toSec()/2.0);
@@ -308,10 +316,10 @@ int main(int argc, char **argv)
     // }
 
 
-    // 控制机械臂先回到初始化位置
-    arm.setNamedTarget("home");
-    arm.move();
-    sleep(1);
+    // // 控制机械臂先回到初始化位置
+    // arm.setNamedTarget("home");
+    // arm.move();
+    // sleep(1);
 
     ros::shutdown(); 
 

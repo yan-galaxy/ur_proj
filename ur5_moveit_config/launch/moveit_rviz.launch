@@ -11,5 +11,6 @@
   <node name="$(anon rviz)" launch-prefix="$(arg launch_prefix)" pkg="rviz" type="rviz" respawn="false"
         args="$(arg command_args)" output="screen">
   </node>
-
+  <!-- <node name="add_boundary" pkg="ur_gazebo" type="add_boundary" output="screen">
+  </node> -->
 </launch>

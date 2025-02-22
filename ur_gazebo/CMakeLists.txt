@@ -31,6 +31,9 @@ target_link_libraries(moveit_demo ${catkin_LIBRARIES})
 add_executable(moveit_fk_demo src/moveit_fk_demo.cpp)
 target_link_libraries(moveit_fk_demo ${catkin_LIBRARIES})
 
+add_executable(add_boundary src/add_boundary.cpp)
+target_link_libraries(add_boundary ${catkin_LIBRARIES})
+
 if (CATKIN_ENABLE_TESTING)
   find_package(roslaunch REQUIRED)
   roslaunch_add_file_check(tests/roslaunch_test_ur3.xml)

@@ -71,7 +71,7 @@ source $HOME/catkin_ws/devel/setup.bash
 
 __Usage__
 
-___With real Hardware___
+___With real Hardware 使用真实硬件___
 
 For using real hardware, please use the
 [`ur_robot_driver`](https://github.com/UniversalRobots/Universal_Robots_ROS_Driver). Installation
@@ -97,14 +97,14 @@ For starting up RViz with a configuration including the MoveIt! Motion Planning 
 
 ```roslaunch ur5_moveit_config moveit_rviz.launch```
 
-___Usage with Gazebo Simulation___
+___Usage with Gazebo Simulation使用Gazebo仿真从这里开始___
 There are launch files available to bringup a simulated robot.
 
 Don't forget to source the correct setup shell files and use a new terminal for each command!
 
 To bring up the simulated robot in Gazebo, run:
 
-```roslaunch ur_gazebo ur5_bringup.launch```
+```roslaunch ur_gazebo ur5_bringup.launch```启动Gazebo
 
 
 ___MoveIt! with a simulated robot___
@@ -112,17 +112,17 @@ Again, you can use MoveIt! to control the simulated robot.
 
 For setting up the MoveIt! nodes to allow motion planning run:
 
-```roslaunch ur5_moveit_config moveit_planning_execution.launch sim:=true```
+```roslaunch ur5_moveit_config moveit_planning_execution.launch sim:=true```启动Moveit！
 
 For starting up RViz with a configuration including the MoveIt! Motion Planning plugin run:
 
-```roslaunch ur5_moveit_config moveit_rviz.launch```
+```roslaunch ur5_moveit_config moveit_rviz.launch```启动Rviz
 
 
 Controlling joints:
 
-```rosrun ur_gazebo moveit_fk_demo```
+```rosrun ur_gazebo moveit_fk_demo```程序中调用Moveit控制机械臂（指定关节位置）
 
 Cartesian space movement, adding collision objects:
 
-```rosrun ur_gazebo moveit_demo```
+```rosrun ur_gazebo moveit_demo```程序中调用Moveit控制机械臂（笛卡尔空间坐标系）
