@@ -126,3 +126,5 @@ Controlling joints:
 Cartesian space movement, adding collision objects:
 
 ```rosrun ur_gazebo moveit_demo```程序中调用Moveit控制机械臂（笛卡尔空间坐标系）
+
+自己编写的Moveit程序在ur_gazebo节点内 moveit_demo.cpp moveit_fk_demo.cpp
