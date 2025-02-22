@@ -29,17 +29,16 @@ int main(int argc, char **argv)
     // arm.setNamedTarget("home");
     // arm.move();
     // sleep(1);
-
     
 
     // double targetPose[6] = {-2.356194, -2.09843, -1.2573, -2.9914, -1.4557, 3.1415};
     double targetPose[6] = {
-        DEG2RAD(-110),  // shoulder_pan_joint   -135
-        DEG2RAD(-90),  // shoulder_lift_joint   -90
-        DEG2RAD(-90),   // elbow_joint          -90
-        DEG2RAD(-180),  // wrist_1_joint        -180
-        DEG2RAD(-90),   // wrist_2_joint        -90
-        DEG2RAD(180)    // wrist_3_joint        180
+        DEG2RAD(-135),  // shoulder_pan_joint    -135
+        DEG2RAD(-105),  // shoulder_lift_joint   -90
+        DEG2RAD(-120),  // elbow_joint           -90
+        DEG2RAD(-135),  // wrist_1_joint         -180
+        DEG2RAD(-90 ),  // wrist_2_joint         -90
+        DEG2RAD(180  )  // wrist_3_joint         180
     };
     std::vector<double> joint_group_positions(6);
     joint_group_positions[0] = targetPose[0];
@@ -51,7 +50,31 @@ int main(int argc, char **argv)
 
     arm.setJointValueTarget(joint_group_positions);
     arm.move();
-    sleep(1);
+    
+    
+    // 方法1：直接获取当前末端位姿
+    geometry_msgs::PoseStamped current_pose = arm.getCurrentPose("tool0"); // tool0是标准UR5的末端link名称
+    ROS_INFO("Current end-effector pose:");
+    ROS_INFO("Position(x,y,z): [%.4f, %.4f, %.4f]", 
+            current_pose.pose.position.x,
+            current_pose.pose.position.y,
+            current_pose.pose.position.z);
+
+    // 将四元数转换为欧拉角显示
+    tf::Quaternion q(
+        current_pose.pose.orientation.x,
+        current_pose.pose.orientation.y,
+        current_pose.pose.orientation.z,
+        current_pose.pose.orientation.w);
+    tf::Matrix3x3 m(q);
+    double roll, pitch, yaw;
+    m.getRPY(roll, pitch, yaw);
+
+    ROS_INFO("Orientation(rpy in radians): [%.4f, %.4f, %.4f]", roll, pitch, yaw);
+    ROS_INFO("Orientation(rpy in degrees): [%.4f, %.4f, %.4f]", 
+            roll * 180/M_PI, 
+            pitch * 180/M_PI, 
+            yaw * 180/M_PI);
 
     // // 控制机械臂先回到初始化位置
     // arm.setNamedTarget("home");

@@ -48,13 +48,13 @@ int main(int argc, char **argv)
 
     //设置允许的最大速度和加速度
     arm.setMaxAccelerationScalingFactor(0.5);
-    arm.setMaxVelocityScalingFactor(0.05);
+    arm.setMaxVelocityScalingFactor(0.03);
 
     //增加轨迹规划时间
     arm.setPlanningTime(10.0); // 增加到 10 秒
 
 
-    
+    // 1**限制运动空间，防止伤人碰撞
     // 移除场景中之前运行残留的物体
     // 创建一个包含对象ID的字符串向量
     std::vector<std::string> object_ids;
@@ -260,11 +260,84 @@ int main(int argc, char **argv)
 
 
 
+    // 2**获取当前末端位姿
+    geometry_msgs::PoseStamped current_pose = arm.getCurrentPose("tool0"); // tool0是标准UR5的末端link名称
+    ROS_INFO("Current end-effector pose:");
+    ROS_INFO("Position(x,y,z): [%.4f, %.4f, %.4f]", 
+            current_pose.pose.position.x,
+            current_pose.pose.position.y,
+            current_pose.pose.position.z);
 
-    // // 控制机械臂先回到初始化位置
-    // arm.setNamedTarget("home");
-    // arm.move();
-    // sleep(1);
+    // 将四元数转换为欧拉角显示
+    tf::Quaternion q(
+        current_pose.pose.orientation.x,
+        current_pose.pose.orientation.y,
+        current_pose.pose.orientation.z,
+        current_pose.pose.orientation.w);
+    tf::Matrix3x3 m(q);
+    double roll, pitch, yaw;
+    m.getRPY(roll, pitch, yaw);
+
+    ROS_INFO("Orientation(rpy in radians): [roll:%.4f, pitch:%.4f, yaw:%.4f]", roll, pitch, yaw);
+    ROS_INFO("Orientation(rpy in degrees): [roll:%.4f, pitch:%.4f, yaw:%.4f]", 
+            roll * 180/M_PI, 
+            pitch * 180/M_PI, 
+            yaw * 180/M_PI);
+
+    // 3** 设置机械臂的目标位姿     
+    //测试得理想夹取位姿为 位置(x=0.4123,y=0.2556,z=0.03)欧拉角姿态(roll=-90,pitch=0.0,yaw=-45)
+    // 对应关节数据为
+    //  - elbow_joint           -2.148289982472555
+    //  - shoulder_lift_joint   -2.053070370350973
+    //  - shoulder_pan_joint    -2.3539419809924524
+    //  - wrist_1_joint         -2.0865190664874476
+    //  - wrist_2_joint         -1.553669277821676
+    //  - wrist_3_joint          3.150042772293091
+    double target_roll_deg = -90;    // 目标roll角（角度）
+    double target_pitch_deg = 0.0; // 目标pitch角（角度）
+    double target_yaw_deg = -45;   // 目标yaw角（角度）
+    double target_roll_rad = target_roll_deg * M_PI / 180.0;
+    double target_pitch_rad = target_pitch_deg * M_PI / 180.0;
+    double target_yaw_rad = target_yaw_deg * M_PI / 180.0;
+    tf::Quaternion target_quaternion;
+    target_quaternion.setRPY(target_roll_rad, target_pitch_rad, target_yaw_rad);
+
+    geometry_msgs::Pose target_pose;
+    target_pose.orientation.x = target_quaternion.x();
+    target_pose.orientation.y = target_quaternion.y();
+    target_pose.orientation.z = target_quaternion.z();
+    target_pose.orientation.w = target_quaternion.w();
+
+    // 指定前进距离
+    double distance = 0.0; // 前进0.1米
+    // 计算方向向量 (1, 1, 0)  沿着程序空间x=y的方向 对应实验室实际空间的x轴正方向
+    Eigen::Vector3d direction(1.0, 1.0, 0.0);
+    // 归一化方向向量
+    direction.normalize();
+    // 计算新的目标位置
+    Eigen::Vector3d current_position(0.4123, 0.2556, current_pose.pose.position.z);
+    Eigen::Vector3d target_position = current_position + direction * distance;
+    // 设置目标位置
+    target_pose.position.x = target_position.x();//current_pose.pose.position.x  0.4123
+    target_pose.position.y = target_position.y();//current_pose.pose.position.y  0.2556
+    target_pose.position.z = 0.03; // 保持z坐标不变
+
+    // 设置机器臂当前的状态作为运动初始状态
+    arm.setStartStateToCurrentState();
+
+    arm.setPoseTarget(target_pose);
+    // arm.setPoseTarget(start_pose);
+
+    // 进行运动规划，计算机器人移动到目标的运动轨迹，此时只是计算出轨迹，并不会控制机械臂运动
+    moveit::planning_interface::MoveGroupInterface::Plan plan;
+    moveit::core::MoveItErrorCode success = arm.plan(plan);
+
+    ROS_INFO("Plan (pose goal) %s",success?"":"FAILED");   
+
+    //让机械臂按照规划的轨迹开始运动。
+    if(success)
+      arm.execute(plan);
+    sleep(1);
 
 
     // //笛卡尔空间下的路径规划  走直线
@@ -345,7 +418,10 @@ int main(int argc, char **argv)
     return 0;
 }
 
-
+    // // 控制机械臂先回到初始化位置
+    // arm.setNamedTarget("home");
+    // arm.move();
+    // sleep(1);
 
 
 
