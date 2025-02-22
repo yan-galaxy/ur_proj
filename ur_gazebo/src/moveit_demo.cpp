@@ -11,9 +11,12 @@
 #include <shape_msgs/SolidPrimitive.h>
 #include <moveit_msgs/PlanningScene.h>
 
+
 // roslaunch ur_gazebo ur5_bringup.launch
 // roslaunch ur5_moveit_config moveit_planning_execution.launch sim:=true
 // roslaunch ur5_moveit_config moveit_rviz.launch
+
+// #define COLLIOSION_OBJECT 1
 
 int main(int argc, char **argv)
 {
@@ -47,13 +50,14 @@ int main(int argc, char **argv)
     arm.setGoalOrientationTolerance(0.01);
 
     //设置允许的最大速度和加速度
-    arm.setMaxAccelerationScalingFactor(0.5);
-    arm.setMaxVelocityScalingFactor(0.03);
+    arm.setMaxAccelerationScalingFactor(1.0);
+    arm.setMaxVelocityScalingFactor(1.0);
 
     //增加轨迹规划时间
     arm.setPlanningTime(10.0); // 增加到 10 秒
 
-
+#ifdef COLLIOSION_OBJECT
+    printf("Collision Object\n");
     // 1**限制运动空间，防止伤人碰撞
     // 移除场景中之前运行残留的物体
     // 创建一个包含对象ID的字符串向量
@@ -257,7 +261,7 @@ int main(int argc, char **argv)
         rate.sleep();
     }
     planning_scene_diff_publisher.publish(planning_scene);
-
+#endif
 
 
     // 2**获取当前末端位姿
@@ -293,8 +297,8 @@ int main(int argc, char **argv)
     //  - wrist_1_joint         -2.0865190664874476
     //  - wrist_2_joint         -1.553669277821676
     //  - wrist_3_joint          3.150042772293091
-    double target_roll_deg = -90;    // 目标roll角（角度）
-    double target_pitch_deg = 0.0; // 目标pitch角（角度）
+    double target_roll_deg = -90.0;    // 目标roll角（角度）
+    double target_pitch_deg = 0.0; // 目标pitch角（角度）  改变夹爪切向旋转角度
     double target_yaw_deg = -45;   // 目标yaw角（角度）
     double target_roll_rad = target_roll_deg * M_PI / 180.0;
     double target_pitch_rad = target_pitch_deg * M_PI / 180.0;
@@ -340,76 +344,166 @@ int main(int argc, char **argv)
     sleep(1);
 
 
-    // //笛卡尔空间下的路径规划  走直线
-    // geometry_msgs::Pose start_pose = arm.getCurrentPose(end_effector_link).pose;
-    // std::vector<geometry_msgs::Pose> waypoints;
-    // //将初始位姿加入路点列表
+    // 4** 笛卡尔空间下的路径规划  走直线
+    geometry_msgs::Pose start_pose = arm.getCurrentPose(end_effector_link).pose;
+    std::vector<geometry_msgs::Pose> waypoints;
+    //将初始位姿加入路点列表
+	waypoints.push_back(start_pose);
+    start_pose.position.z += 0.35;
+	waypoints.push_back(start_pose);
+    // start_pose.position.x += 0.05 * std::sqrt(2);
+    // start_pose.position.y += 0.05 * std::sqrt(2);
 	// waypoints.push_back(start_pose);
-    // start_pose.position.z -= 0.2;
-	// waypoints.push_back(start_pose);
-    // start_pose.position.x -= 0.2;
-	// waypoints.push_back(start_pose);
-    // start_pose.position.y -= 0.2;
-	// waypoints.push_back(start_pose);
-    // start_pose.position.x += 0.2;
-    // // start_pose.position.y += 0.2;
-	// waypoints.push_back(start_pose);
-    // start_pose.position.y += 0.2;
-	// waypoints.push_back(start_pose);
-    // start_pose.position.z += 0.2;
+    start_pose.position.z -= 0.35;
+	waypoints.push_back(start_pose);
+    // start_pose.position.x -= 0.05 * std::sqrt(2);
+    // start_pose.position.y -= 0.05 * std::sqrt(2);
 	// waypoints.push_back(start_pose);
     
-    // moveit_msgs::RobotTrajectory trajectory;
-	// const double jump_threshold = 0.0;
-	// const double eef_step = 0.01;
-    // double fraction = 0.0;
-    // int maxtries = 30;   //最大尝试规划次数
-    // int attempts = 0;     //已经尝试规划次数
+    moveit_msgs::RobotTrajectory trajectory;
+	const double jump_threshold = 0.0;
+	const double eef_step = 0.005;//原速度是1.0-0.010  0.75-0.005
+    double fraction = 0.0;
+    int maxtries = 30;   //最大尝试规划次数
+    int attempts = 0;     //已经尝试规划次数
     
 
-    // while(fraction < 1.0 && attempts < maxtries)
-    // {
-    //     fraction = arm.computeCartesianPath(waypoints, eef_step, trajectory);
-    //     attempts++;
+    while(fraction < 1.0 && attempts < maxtries)
+    {
+        fraction = arm.computeCartesianPath(waypoints, eef_step, trajectory);
+        attempts++;
         
-    //     if(attempts % 10 == 0)
-    //         ROS_INFO("Still trying after %d attempts...", attempts);
-    // }
-    
+        if(attempts % 10 == 0)
+            ROS_INFO("Still trying after %d attempts...", attempts);
+    }
+
+    if(fraction == 1)
+    {   
+        ROS_INFO("Path computed successfully. Moving the arm.");
+
+        // 轨迹点处理逻辑 -----------------------------------------------
+        if(!trajectory.joint_trajectory.points.empty())
+        {
+            // 打印原始时间戳
+            ROS_INFO("Original time stamps (%zu points):", trajectory.joint_trajectory.points.size());
+            for (const auto& point : trajectory.joint_trajectory.points) {
+                ROS_INFO("  %.6f", point.time_from_start.toSec());
+            }
+
+            // 检查并删除第一个时间戳（当存在两个0.00时）
+            if(trajectory.joint_trajectory.points.size() >= 2 &&
+               trajectory.joint_trajectory.points[0].time_from_start.toSec() == 0.0 &&
+               trajectory.joint_trajectory.points[1].time_from_start.toSec() == 0.0)
+            {
+                ROS_WARN("Removing first waypoint with zero timestamp");
+                
+                // 保存原始起点数据用于验证
+                auto first_point = trajectory.joint_trajectory.points[0];
+                
+                // 删除第一个点
+                trajectory.joint_trajectory.points.erase(
+                    trajectory.joint_trajectory.points.begin());
+
+                // 调整后续点的时间戳
+                ros::Duration time_offset = first_point.time_from_start;
+                for(auto& point : trajectory.joint_trajectory.points) {
+                    point.time_from_start -= time_offset;
+                }
+
+                // 打印删除后的时间戳
+                ROS_INFO("Adjusted time stamps (%zu points):", trajectory.joint_trajectory.points.size());
+                for (const auto& point : trajectory.joint_trajectory.points) {
+                    ROS_INFO("  %.6f", point.time_from_start.toSec());
+                }
+
+                // 验证轨迹连续性
+                if(!trajectory.joint_trajectory.points.empty()) {
+                    ROS_INFO("New first point position: [%f, %f, %f, %f, %f, %f]",
+                        trajectory.joint_trajectory.points[0].positions[0],
+                        trajectory.joint_trajectory.points[0].positions[1],
+                        trajectory.joint_trajectory.points[0].positions[2],
+                        trajectory.joint_trajectory.points[0].positions[3],
+                        trajectory.joint_trajectory.points[0].positions[4],
+                        trajectory.joint_trajectory.points[0].positions[5]);
+                }
+            }
+        }
+
+	    // 生成机械臂的运动规划数据
+	    moveit::planning_interface::MoveGroupInterface::Plan plan;
+	    plan.trajectory_ = trajectory;
+
+        // 修正为：
+        double speed_factor = 0.75;//2.0表示速度翻两倍   修改后上面的eef_step也要修改
+        ros::Duration accumulated_time(0.0);
+        ros::Duration prev_original_time(0.0);
+
+        for (auto& point : plan.trajectory_.joint_trajectory.points) {
+            // 计算当前点与上一个点的原始时间间隔
+            ros::Duration delta = point.time_from_start - prev_original_time;
+            
+            // 应用速度因子并累加
+            accumulated_time += ros::Duration(delta.toSec() / speed_factor);
+            
+            // 更新时间戳
+            prev_original_time = point.time_from_start;
+            point.time_from_start = accumulated_time;
+            
+            // 可选：打印验证
+            ROS_INFO_STREAM("Modified timestamp: " << accumulated_time.toSec());
+        }
+        // for (const auto& point : plan.trajectory_.joint_trajectory.points)
+        // {
+        //     ROS_INFO("Change Speed Waypoint time_from_start: %6f", point.time_from_start.toSec());
+        // }
+
+        // 保留原始的时间戳修正逻辑作为备用
+        if (plan.trajectory_.joint_trajectory.points.size() > 2 &&
+            plan.trajectory_.joint_trajectory.points[0].time_from_start == 
+            plan.trajectory_.joint_trajectory.points[1].time_from_start)
+        {
+            ROS_INFO("Adjusting duplicate timestamps...");
+            plan.trajectory_.joint_trajectory.points[1].time_from_start = 
+                ros::Duration(plan.trajectory_.joint_trajectory.points[2].time_from_start.toSec()/2.0);
+        }
+        
+	    // 执行运动
+	    arm.execute(plan);
+        sleep(1);
+    }
     // if(fraction == 1)
     // {   
     //     ROS_INFO("Path computed successfully. Moving the arm.");
 
+        
 	//     // 生成机械臂的运动规划数据
 	//     moveit::planning_interface::MoveGroupInterface::Plan plan;
 	//     plan.trajectory_ = trajectory;
 
-    //     // //打印时间戳检查是否严格递增
-    //     // for (const auto& point : plan.trajectory_.joint_trajectory.points)
-    //     // {
-    //     //     ROS_INFO("Waypoint time_from_start: %f", point.time_from_start.toSec());
-    //     // }
-    //     // 检查并修正第一个和第二个时间戳
+    //     //打印时间戳检查是否严格递增
+    //     for (const auto& point : plan.trajectory_.joint_trajectory.points)
+    //     {
+    //         ROS_INFO("Waypoint time_from_start: %6f", point.time_from_start.toSec());
+    //     }
+    //     // 检查并修正第一个和第二个时间戳  如果第一个时间戳和第二个时间戳都为0.00 则修正
     //     if (plan.trajectory_.joint_trajectory.points.size() > 2 &&
     //         plan.trajectory_.joint_trajectory.points[0].time_from_start == plan.trajectory_.joint_trajectory.points[1].time_from_start)
     //     {
-            
-    //         // ROS_INFO("Change Waypoint time_from_start: %f", plan.trajectory_.joint_trajectory.points[2].time_from_start.toSec()/2.0);
+    //         ROS_WARN("Removing first waypoint with zero timestamp");
+    //         ROS_INFO("Change Waypoint time_from_start: %f", plan.trajectory_.joint_trajectory.points[2].time_from_start.toSec()/2.0);
     //         // plan.trajectory_.joint_trajectory.points[1].time_from_start = ros::Duration(0.03);
     //         plan.trajectory_.joint_trajectory.points[1].time_from_start = ros::Duration(plan.trajectory_.joint_trajectory.points[2].time_from_start.toSec()/2.0);
     //         // ROS_INFO("Change Waypoint time_from_start: %f", plan.trajectory_.joint_trajectory.points[1].time_from_start.toSec());
             
     //     }
-
-
 	//     // 执行运动
 	//     arm.execute(plan);
     //     sleep(1);
     // }
-    // else
-    // {
-    //     ROS_INFO("Path planning failed with only %0.6f success after %d attempts.", fraction, maxtries);
-    // }
+    else
+    {
+        ROS_INFO("Path planning failed with only %0.6f success after %d attempts.", fraction, maxtries);
+    }
 
 
 
